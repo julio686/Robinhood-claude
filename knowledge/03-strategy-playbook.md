@@ -1,4 +1,32 @@
-# 03 — Strategy Playbook: "Momentum Hunter"
+# 03 — Strategy Playbook
+
+> **ACTIVE STRATEGY: "Dip Buyer" (mean reversion).** Set in `config/strategy.yaml: active: dip`.
+> Backtests favor it over Momentum (higher win rate + return as an active strategy). The
+> Momentum Hunter spec below is retained and selectable (`active: momentum`).
+
+## Dip Buyer — buy pullbacks inside an uptrend (toolkit/dip_strategy.mjs)
+Thesis: stocks in uptrends bounce a few days after a sharp dip. Buy the dip, sell into the
+bounce, bank it, go to cash, wait for the next dip. The *sell* is half the edge.
+
+**Entry (all true):** price > 200-day SMA · 50-EMA > 200-EMA (confirmed uptrend) · RSI(2) < 10
+(sharp oversold dip) · not >3% below the 50-EMA (a dip, not a breakdown) · no earnings within 3 days.
+
+**Sizing:** risk 1.5%/trade; initial stop = entry − 2×ATR(14); shares = risk$ ÷ (entry − stop).
+
+**Exit / the "seller" (shared `evaluateDipExit`, applied by the 3:30pm run):**
+- Hard stop at entry − 2×ATR.
+- **Breakeven after +1R** — once up 1R, stop moves to entry (never let a winner go red).
+- **Chandelier trail** — stop = 10-bar high − 2.5×ATR, locks gains as it rises.
+- **Sell into strength** — exit when RSI(2) > 65 OR close > 5-day SMA (the bounce has run).
+- **Trend break** — exit if close < 200-day SMA.
+- **Time stop** — exit after 5 sessions (mean reversion works fast or not at all).
+
+**Measured (18mo, 6 names):** Dip Buyer avg +2.7% vs Momentum +0.7%; win rates 50–100%. Both
+still trail buy-and-hold on strong trends — see [[05-reality-check]].
+
+---
+
+# (reference) "Momentum Hunter"
 
 Hunt the technical **fingerprint** explosive names share *before* a run. This reads the **present** (trend, breakout, volume, momentum) — it does **not** forecast the future. Parameters live in `config/strategy.yaml`; logic in `toolkit/strategy.mjs`.
 
