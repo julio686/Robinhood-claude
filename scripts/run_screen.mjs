@@ -11,7 +11,7 @@
 // ATR stop and a risk-sized share count; plus every name's pass/fail reasons.
 // Appends a line per decision to journal/decisions.log. Places NO orders.
 
-import { readFileSync, appendFileSync } from "node:fs";
+import { readFileSync, appendFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { loadYaml } from "../toolkit/config.mjs";
@@ -23,9 +23,10 @@ const ROOT = join(__dirname, "..");
 
 const barsPath = process.argv[2];
 if (!barsPath) {
-  console.error("usage: node run_screen.mjs <bars.json> [equity]");
+  console.error("usage: node run_screen.mjs <bars.json> [equity] [out.json]");
   process.exit(2);
 }
+const outJsonPath = process.argv[4]; // optional machine-readable output for paper_book.mjs
 
 const risk = loadYaml(join(ROOT, "config/risk_limits.yaml"));
 const strat = loadYaml(join(ROOT, "config/strategy.yaml"));
@@ -124,6 +125,31 @@ appendFileSync(
     `passing=${passing.length} [${top}] | rejected=${rejected.length}\n`
 );
 console.log(`\nLogged to journal/decisions.log`);
+
+// --- Machine-readable output (for paper_book.mjs) ---
+if (outJsonPath) {
+  const payload = {
+    asof: stamp,
+    equity,
+    passing: passing.map((c) => ({
+      symbol: c.symbol,
+      score: c.score,
+      price: c.price,
+      stop: c.stop,
+      distFromHigh: c.distFromHigh,
+      volMult: c.volMult,
+      rsi: c.rsi,
+      shares: c.sizing.ok ? c.sizing.shares : null,
+      notional: c.sizing.ok ? c.sizing.notional : null,
+      riskUsd: c.sizing.ok ? c.sizing.riskUsd : null,
+      sizeOk: c.sizing.ok,
+      sizeReason: c.sizing.ok ? null : c.sizing.reason,
+    })),
+    rejected: rejected.map((r) => ({ symbol: r.symbol, reason: r.reasons[0] })),
+  };
+  writeFileSync(outJsonPath, JSON.stringify(payload, null, 2));
+  console.log(`Wrote machine-readable screen to ${outJsonPath}`);
+}
 
 function round(x, dp) {
   const f = 10 ** dp;

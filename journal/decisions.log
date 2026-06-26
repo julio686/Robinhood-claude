@@ -2,3 +2,4 @@
 # Format: <iso-timestamp> | asof=<data-date> | mode=<paper|live> | equity=<usd> | passing=<n> [sym:score,...] | rejected=<n>
 2026-06-25T23:46:19.191Z | asof=unstamped | mode=paper | equity=200 | passing=0 [none] | rejected=6
 2026-06-26T01:02:59.058Z | asof=unstamped | mode=paper | equity=200 | passing=0 [none] | rejected=1
+2026-06-26T01:58:01.785Z | asof=unstamped | mode=paper | equity=200 | passing=0 [none] | rejected=6
