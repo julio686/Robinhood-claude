@@ -1,0 +1,39 @@
+# strategy.yaml — "Momentum Hunter" parameters. Source of truth for the live loop.
+# Mirrors DEFAULT_CFG in toolkit/strategy.mjs (keep them in sync).
+
+name: momentum_hunter
+description: >
+  Hunt the technical fingerprint explosive names share BEFORE a run: price breaking
+  toward new highs, in an intact uptrend, on a volume surge, with strong-but-not-blowoff
+  momentum. Ranks candidates by setup strength. This reads the PRESENT, it does not
+  forecast the future.
+
+indicators:
+  trend_fast_period: 50          # EMA
+  trend_slow_period: 200         # EMA
+  rsi_period: 14
+  atr_period: 14
+  high_lookback: 252             # ~1 trading year trailing high (breakout reference)
+  vol_avg_period: 20
+
+entry:                           # ALL must be true
+  max_pct_below_high: 0.05       # within 5% of trailing high (breakout zone)
+  uptrend_stack: true            # price > 50EMA AND 50EMA > 200EMA
+  min_volume_mult: 1.5           # today's volume >= 1.5x 20-day average
+  rsi_min: 50                    # strong...
+  rsi_max: 80                    # ...but not blow-off / overbought-exhausted
+  falling_knife_pct_below_high: 0.5  # reject names too far below high (the PLTR-today screen-out)
+  no_earnings_within_days: 3
+
+exit:
+  atr_stop_mult: 2.0             # initial stop = entry - 2.0 * ATR(14)
+  atr_trail_mult: 2.0            # trail the stop up by 2.0 * ATR (never down)
+  take_profit_r: 2.0             # scale out at +2R
+  exit_below_50ema: true         # hard exit if close back under the 50-day EMA
+  time_stop_bars: 10             # exit if it hasn't worked within ~10 sessions
+
+ranking:
+  # composite score weights (see evaluateEntry in strategy.mjs)
+  relative_strength_weight: 0.5
+  volume_weight: 0.3
+  trend_weight: 0.2

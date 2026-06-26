@@ -1,0 +1,29 @@
+# risk_limits.yaml — HARD guardrails. The machine must obey these in every run.
+# These are deliberately conservative. Changing them = changing how much you can lose.
+
+mode: paper                      # paper | live   (live requires explicit user sign-off)
+account_number: "SET_AT_RUNTIME" # supplied by the routine prompt / operator at runtime — never committed to this repo
+require_review_before_live: true # every live order goes through review_equity_order + approval
+
+# --- Capital & per-trade risk ---
+start_equity_usd: 200
+max_risk_per_trade_pct: 1.5      # fixed-fractional: most you can lose if stop is hit (~$3)
+max_position_pct: 40             # a single position's notional cap (% of equity)
+min_order_usd: 1                 # Robinhood fractional minimum
+
+# --- Portfolio limits ---
+max_concurrent_positions: 3
+daily_loss_limit_pct: 2          # if down this much on the day, STOP opening new trades
+no_earnings_within_days: 3       # earnings blackout window (gap risk)
+
+# --- Hard prohibitions (this account / this phase) ---
+allow_options: false             # account not enrolled
+allow_margin: false              # cash account
+allow_short: false               # long-only
+allow_extended_hours: false      # fractional unavailable + wide spreads
+
+# --- "Moonshot" speculative sleeve (optional, off by default) ---
+moonshot:
+  enabled: false
+  max_positions: 1
+  max_pct_of_equity: 10          # lottery-ticket cap; total loss must cost <= max_risk_per_trade

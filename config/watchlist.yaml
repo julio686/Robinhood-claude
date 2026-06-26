@@ -1,0 +1,40 @@
+# watchlist.yaml — the scan universe. Liquid, fractional-eligible US equities/ETFs.
+# Keep names that trade tight spreads and are eligible for fractional shares.
+# This is a SEED list (themes that produce momentum leaders); prune/extend over time.
+# The machine can also surface candidates beyond this list via Robinhood scanners.
+
+benchmark: SPY                   # every paper result is graded against holding this
+
+universe:
+  # --- AI / semiconductors / data-center (current momentum leadership) ---
+  - NVDA
+  - AMD
+  - AVGO
+  - ARM
+  - MU
+  - ANET
+  - VRT
+  - SMCI
+  - TSM
+  - MRVL
+  # --- Software / cyber / data ---
+  - PLTR
+  - CRWD
+  - PANW
+  - NOW
+  - SNOW
+  # --- Mega-cap tech anchors (liquidity, trend reference) ---
+  - AAPL
+  - MSFT
+  - GOOGL
+  - AMZN
+  - META
+  - TSLA
+  # --- Broad ETFs (regime / fallback exposure) ---
+  - QQQ
+  - SPY
+
+# Speculative small-caps for the optional moonshot sleeve ONLY (high risk of -100%).
+moonshot_candidates:
+  - IONQ
+  - RGTI

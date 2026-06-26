@@ -1,0 +1,8 @@
+{
+  "mode": "paper",
+  "as_of": null,
+  "cash_usd": 200,
+  "open_positions": [],
+  "closed_count": 0,
+  "notes": "Open paper positions live here between runs. The 3:30pm management run reads this, applies stops/targets/trails, and writes it back. Real-money positions are read live from Robinhood (get_equity_positions), never from this file."
+}

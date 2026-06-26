@@ -1,0 +1,11 @@
+# Large/regenerable market data (pulled fresh via the connector each run)
+journal/*_bars.json
+*_bars.json
+tool-results/
+
+# Runtime / deps
+.local/
+node_modules/
+
+# OS noise
+.DS_Store
