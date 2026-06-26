@@ -20,13 +20,24 @@
 // Exits use the ATR implied by entry's r_unit (stop = entry - 2*ATR => ATR = r_unit/2),
 // so the trailing stop needs no bar history at management time.
 
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 
 const TAKE_PROFIT_R = 2.0; // exit at +2R
 const TIME_STOP_DAYS = 14; // ~10 trading days in calendar terms
 const MAX_POSITIONS_DEFAULT = 3;
 
-const [cmd, ...rest] = process.argv.slice(2);
+const argv = process.argv.slice(2);
+// Optional "--out <path>" writes the resulting state JSON to a file (for the routines).
+let outStatePath = null;
+const outIdx = argv.indexOf("--out");
+if (outIdx !== -1) {
+  outStatePath = argv[outIdx + 1];
+  argv.splice(outIdx, 2);
+}
+const [cmd, ...rest] = argv;
+const saveState = (state) => {
+  if (outStatePath) writeFileSync(outStatePath, JSON.stringify(state, null, 2));
+};
 
 function round(x, dp = 2) {
   const f = 10 ** dp;
@@ -95,6 +106,7 @@ if (cmd === "enter") {
     opened.push({ symbol: pos.symbol, shares: pos.shares, entry: pos.entry, stop: pos.stop, cost: c.notional });
   }
   state.last_run = asof;
+  saveState(state);
   console.log(JSON.stringify({ state, opened, equity: equityOf(state) }, null, 2));
   process.exit(0);
 }
@@ -165,6 +177,7 @@ if (cmd === "manage") {
     realized_pnl: round(state.closed_trades.reduce((s, t) => s + t.pnl_usd, 0), 2),
     open_count: state.open_positions.length,
   };
+  saveState(state);
   console.log(JSON.stringify(out, null, 2));
   process.exit(0);
 }
