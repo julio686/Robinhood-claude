@@ -1,5 +1,30 @@
-# strategy.yaml — "Momentum Hunter" parameters. Source of truth for the live loop.
-# Mirrors DEFAULT_CFG in toolkit/strategy.mjs (keep them in sync).
+# strategy.yaml — strategy parameters. Source of truth for the live loop.
+# Two strategies are implemented; `active` selects which one the live machine runs.
+#   momentum -> toolkit/strategy.mjs      (buy breakouts near 52wk highs)
+#   dip      -> toolkit/dip_strategy.mjs  (buy RSI(2) pullbacks inside an uptrend)
+# Backtests favor `dip` (better win rate + return as an active strategy), so it is the default.
+active: dip
+
+# --- Dip Buyer params (mirror DIP_CFG in toolkit/dip_strategy.mjs) ---
+dip:
+  sma_trend: 200                 # long-term uptrend gate (price must be above)
+  ema_fast: 50
+  ema_slow: 200
+  rsi_short: 2                   # Connors RSI(2)
+  rsi_long: 14
+  atr_period: 14
+  sma5: 5
+  entry:
+    rsi2_max: 10                 # buy when RSI(2) < this (sharp oversold dip)
+    ema50_tolerance_pct: 0.03    # reject if >3% below 50-EMA (breakdown, not a dip)
+    no_earnings_within_days: 3
+  exit:                          # the "seller" — professional sell discipline
+    atr_stop_mult: 2.0           # initial stop = entry - 2*ATR
+    breakeven_r: 1.0             # once +1R, stop -> breakeven (anti round-trip)
+    chandelier_lookback: 10      # trailing stop lookback
+    chandelier_mult: 2.5         # trail = highHigh(10) - 2.5*ATR
+    exit_rsi2: 65                # sell into strength when RSI(2) > this
+    time_stop_bars: 5            # mean reversion works fast or not at all
 
 name: momentum_hunter
 description: >

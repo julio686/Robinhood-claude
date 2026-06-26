@@ -38,3 +38,19 @@ universe:
 moonshot_candidates:
   - IONQ
   - RGTI
+
+# Dip Buyer scan universe — liquid large/mega-caps that trend well, so RSI(2) dips
+# inside their uptrends are high-quality. Kept small (~10) to bound per-symbol bar
+# fetches in the cloud. The strategy's own 200-SMA/EMA filter rejects any that are
+# not actually in an uptrend at scan time.
+dip_universe:
+  - NVDA
+  - AMD
+  - AVGO
+  - ANET
+  - MU
+  - VRT
+  - MSFT
+  - META
+  - GOOGL
+  - AMZN

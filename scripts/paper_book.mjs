@@ -21,6 +21,10 @@
 // so the trailing stop needs no bar history at management time.
 
 import { readFileSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+import { loadYaml } from "../toolkit/config.mjs";
+import { computeDipSignals, evaluateDipExit } from "../toolkit/dip_strategy.mjs";
 
 const TAKE_PROFIT_R = 2.0; // exit at +2R
 const TIME_STOP_DAYS = 14; // ~10 trading days in calendar terms
@@ -182,5 +186,77 @@ if (cmd === "manage") {
   process.exit(0);
 }
 
-console.error("usage: node paper_book.mjs <init|enter|manage> ...");
+if (cmd === "manage-dip") {
+  // The "seller" for the Dip Buyer: applies evaluateDipExit (stop / breakeven /
+  // Chandelier trail / sell-into-strength / trend-break / time-stop) using bars.
+  // bars.json = { "SYMBOL": [ {date,open,high,low,close,volume}, ... ], ... } for held names.
+  const [statePath, barsPath, asof, spyPriceArg] = rest;
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const strat = loadYaml(join(__dirname, "..", "config/strategy.yaml"));
+  const dp = strat.dip;
+  const cfg = {
+    smaTrend: dp.sma_trend, emaFast: dp.ema_fast, emaSlow: dp.ema_slow,
+    rsiShort: dp.rsi_short, rsiLong: dp.rsi_long, atrPeriod: dp.atr_period, sma5: dp.sma5,
+    atrStopMult: dp.exit.atr_stop_mult, chandelierLookback: dp.exit.chandelier_lookback,
+    chandelierMult: dp.exit.chandelier_mult, exitRsi2: dp.exit.exit_rsi2,
+    breakevenR: dp.exit.breakeven_r, timeStopBars: dp.exit.time_stop_bars,
+  };
+  const state = JSON.parse(readFileSync(statePath, "utf8"));
+  const bars = JSON.parse(readFileSync(barsPath, "utf8"));
+  const spyPrice = spyPriceArg ? Number(spyPriceArg) : null;
+  const prices = {};
+  const actions = [];
+  const stillOpen = [];
+
+  for (const p of state.open_positions) {
+    const b = bars[p.symbol];
+    if (!Array.isArray(b) || b.length < cfg.smaTrend + 5) {
+      stillOpen.push(p);
+      actions.push({ symbol: p.symbol, action: "hold", note: "insufficient bars to evaluate" });
+      continue;
+    }
+    const sig = computeDipSignals(b, cfg);
+    const i = b.length - 1;
+    prices[p.symbol] = sig.close[i];
+    // The position has entryIdx from its own bar history (not this fetch). For the
+    // live time-stop, derive "bars held" from calendar days since opened_date.
+    const heldBars = Math.max(1, Math.round(daysBetween(p.opened_date, asof) * 5 / 7)); // ~trading days
+    const posForExit = { ...p, entryIdx: i - heldBars };
+    const dec = evaluateDipExit(sig, i, posForExit, cfg);
+    if (dec.action === "close") {
+      const fill = dec.fill;
+      const pnl = round((fill - p.entry) * p.shares, 2);
+      state.cash_usd = round(state.cash_usd + p.shares * fill, 2);
+      state.closed_trades.push({
+        symbol: p.symbol, shares: p.shares, entry: p.entry, exit: round(fill, 4),
+        opened_date: p.opened_date, closed_date: asof,
+        pnl_usd: pnl, pnl_pct: round((fill / p.entry - 1) * 100, 2), reason: dec.reason,
+      });
+      actions.push({ symbol: p.symbol, action: "close", reason: dec.reason, price: round(fill, 4), pnl_usd: pnl });
+    } else {
+      if (dec.newStop > p.stop) actions.push({ symbol: p.symbol, action: "trail", from: p.stop, to: round(dec.newStop, 4) });
+      else actions.push({ symbol: p.symbol, action: "hold", price: round(sig.close[i], 4), stop: round(dec.newStop, 4) });
+      p.stop = round(dec.newStop, 4);
+      p.high_water = round(dec.newHighWater, 4);
+      stillOpen.push(p);
+    }
+  }
+  state.open_positions = stillOpen;
+
+  const equity = equityOf(state, prices);
+  state.history = state.history || [];
+  state.history.push({ date: asof, equity });
+  state.last_run = asof;
+  const benchEq = benchmarkEquity(state, spyPrice);
+  saveState(state);
+  console.log(JSON.stringify({
+    state, actions, equity, benchmark_equity: benchEq,
+    vs_benchmark: benchEq ? round(equity - benchEq, 2) : null,
+    realized_pnl: round(state.closed_trades.reduce((s, t) => s + t.pnl_usd, 0), 2),
+    open_count: state.open_positions.length,
+  }, null, 2));
+  process.exit(0);
+}
+
+console.error("usage: node paper_book.mjs <init|enter|manage|manage-dip> ...");
 process.exit(2);
